@@ -1,31 +1,67 @@
 import { useState, useRef } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import Stats from "@/components/Stats";
 import GeneratorForm, { GeneratorData } from "@/components/GeneratorForm";
 import ResultsDisplay, { GeneratedResult } from "@/components/ResultsDisplay";
+import Features from "@/components/Features";
+import Testimonials from "@/components/Testimonials";
 import Pricing from "@/components/Pricing";
+import FAQ from "@/components/FAQ";
+import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import SavedIdeas from "@/components/SavedIdeas";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<GeneratedResult | null>(null);
   const [lastFormData, setLastFormData] = useState<GeneratorData | null>(null);
+  const [showSavedIdeas, setShowSavedIdeas] = useState(false);
   const generatorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user, profile, refreshProfile } = useAuth();
 
   const scrollToGenerator = () => {
     generatorRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleGenerate = async (data: GeneratorData) => {
+    // Check credits for logged-in users
+    if (user && profile && profile.credits_remaining <= 0 && !profile.is_premium) {
+      toast({
+        title: "No credits remaining",
+        description: "Upgrade to Pro for unlimited generations!",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setLastFormData(data);
     
     try {
       const generatedResult = await generateViralIdea(data);
       setResult(generatedResult);
+      
+      // Deduct credit for logged-in users
+      if (user && profile && !profile.is_premium) {
+        await supabase
+          .from("profiles")
+          .update({ credits_remaining: profile.credits_remaining - 1 })
+          .eq("user_id", user.id);
+        await refreshProfile();
+      }
       
       toast({
         title: "✨ Viral idea generated!",
@@ -48,23 +84,59 @@ const Index = () => {
     }
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Sign up to save ideas",
-      description: "Create a free account to save and organize your viral ideas.",
+  const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Sign up to save ideas",
+        description: "Create a free account to save and organize your viral ideas.",
+      });
+      return;
+    }
+
+    if (!result || !lastFormData) return;
+
+    const { error } = await supabase.from("saved_ideas").insert({
+      user_id: user.id,
+      niche: lastFormData.niche,
+      platform: lastFormData.platform,
+      goal: lastFormData.goal,
+      hook: result.hook,
+      title: result.title,
+      storyline: result.storyline,
+      ai_prompt: result.aiPrompt,
+      hashtags: result.hashtags,
     });
+
+    if (error) {
+      toast({
+        title: "Failed to save",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Idea saved! 🎉",
+        description: "Find it in your saved ideas anytime.",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onGetStarted={scrollToGenerator} />
+      <Header 
+        onGetStarted={scrollToGenerator} 
+        onShowSavedIdeas={() => setShowSavedIdeas(true)} 
+      />
       
       {!result ? (
         <>
           <Hero onGetStarted={scrollToGenerator} />
+          <Stats />
           <div ref={generatorRef}>
             <GeneratorForm onGenerate={handleGenerate} isLoading={isLoading} />
           </div>
+          <Features />
+          <Testimonials />
         </>
       ) : (
         <>
@@ -81,7 +153,22 @@ const Index = () => {
       )}
       
       <Pricing />
+      <FAQ />
+      <CTA onGetStarted={scrollToGenerator} />
       <Footer />
+
+      {/* Saved Ideas Dialog */}
+      <Dialog open={showSavedIdeas} onOpenChange={setShowSavedIdeas}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Saved Ideas</DialogTitle>
+            <DialogDescription>
+              Your collection of viral video ideas
+            </DialogDescription>
+          </DialogHeader>
+          <SavedIdeas />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
