@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Stats from "@/components/Stats";
@@ -11,10 +11,12 @@ import FAQ from "@/components/FAQ";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import SavedIdeas from "@/components/SavedIdeas";
+import ProductTour from "@/components/ProductTour";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -28,9 +30,58 @@ const Index = () => {
   const [result, setResult] = useState<GeneratedResult | null>(null);
   const [lastFormData, setLastFormData] = useState<GeneratorData | null>(null);
   const [showSavedIdeas, setShowSavedIdeas] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const generatorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user, profile, refreshProfile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Check for subscription success/cancel in URL params
+  useEffect(() => {
+    const subscription = searchParams.get("subscription");
+    if (subscription === "success") {
+      toast({
+        title: "🎉 Welcome to Pro!",
+        description: "Your subscription is active. Enjoy unlimited generations!",
+      });
+      // Check subscription status to update profile
+      checkSubscription();
+      // Clean URL
+      setSearchParams({});
+    } else if (subscription === "canceled") {
+      toast({
+        title: "Checkout canceled",
+        description: "No worries! You can upgrade anytime.",
+      });
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  // Check subscription status on load for logged-in users
+  useEffect(() => {
+    if (user) {
+      checkSubscription();
+    }
+  }, [user]);
+
+  // Show tour for new users
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem("viralhook-tour-completed");
+    if (!tourCompleted) {
+      // Delay tour to let page load
+      const timer = setTimeout(() => setShowTour(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      await supabase.functions.invoke("check-subscription");
+      await refreshProfile();
+    } catch (error) {
+      console.error("Check subscription error:", error);
+    }
+  };
 
   const scrollToGenerator = () => {
     generatorRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -169,6 +220,12 @@ const Index = () => {
           <SavedIdeas />
         </DialogContent>
       </Dialog>
+
+      {/* Product Tour */}
+      <ProductTour 
+        isOpen={showTour} 
+        onComplete={() => setShowTour(false)} 
+      />
     </div>
   );
 };

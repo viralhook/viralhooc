@@ -1,9 +1,79 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, Crown } from "lucide-react";
+import { Check, Zap, Crown, Loader2, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Pricing = () => {
+  const { user, profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  const handleCheckout = async () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    setIsLoading("pro");
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setIsLoading("manage");
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      console.error("Portal error:", error);
+      toast({
+        title: "Could not open portal",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const checkSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      await supabase.functions.invoke("check-subscription");
+      await refreshProfile();
+    } catch (error) {
+      console.error("Check subscription error:", error);
+    }
+  };
+
   const plans = [
     {
       name: "Free",
@@ -18,13 +88,14 @@ const Pricing = () => {
         "Copy to clipboard",
         "Community support",
       ],
-      buttonText: "Get Started Free",
+      buttonText: user ? "Current Plan" : "Get Started Free",
       buttonVariant: "outline" as const,
       popular: false,
+      isCurrent: user && !profile?.is_premium,
     },
     {
       name: "Pro",
-      price: "$9",
+      price: "$9.99",
       period: "/month",
       description: "For serious content creators",
       icon: Crown,
@@ -37,9 +108,10 @@ const Pricing = () => {
         "Export to CSV",
         "Priority support",
       ],
-      buttonText: "Upgrade to Pro",
+      buttonText: profile?.is_premium ? "Manage Subscription" : "Upgrade to Pro",
       buttonVariant: "default" as const,
       popular: true,
+      isCurrent: profile?.is_premium,
     },
   ];
 
@@ -64,11 +136,16 @@ const Pricing = () => {
                 plan.popular
                   ? "border-primary shadow-xl shadow-primary/10 scale-105"
                   : "border-border"
-              }`}
+              } ${plan.isCurrent ? "ring-2 ring-primary" : ""}`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="px-4 py-1">Most Popular</Badge>
+                </div>
+              )}
+              {plan.isCurrent && (
+                <div className="absolute -top-3 right-4">
+                  <Badge variant="secondary" className="px-4 py-1 bg-primary/20">Your Plan</Badge>
                 </div>
               )}
               
@@ -96,13 +173,46 @@ const Pricing = () => {
               </CardContent>
               
               <CardFooter>
-                <Button
-                  variant={plan.buttonVariant}
-                  size="lg"
-                  className="w-full"
-                >
-                  {plan.buttonText}
-                </Button>
+                {plan.name === "Pro" ? (
+                  profile?.is_premium ? (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleManageSubscription}
+                      disabled={isLoading === "manage"}
+                    >
+                      {isLoading === "manage" ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Settings className="w-4 h-4 mr-2" />
+                      )}
+                      Manage Subscription
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={plan.buttonVariant}
+                      size="lg"
+                      className="w-full"
+                      onClick={handleCheckout}
+                      disabled={isLoading === "pro"}
+                    >
+                      {isLoading === "pro" && (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      )}
+                      {plan.buttonText}
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    variant={plan.buttonVariant}
+                    size="lg"
+                    className="w-full"
+                    disabled={plan.isCurrent}
+                  >
+                    {plan.buttonText}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}
@@ -111,6 +221,14 @@ const Pricing = () => {
         <p className="text-center text-sm text-muted-foreground mt-8">
           Cancel anytime. No questions asked.
         </p>
+
+        {user && (
+          <div className="text-center mt-4">
+            <Button variant="ghost" size="sm" onClick={checkSubscription}>
+              Refresh subscription status
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );
