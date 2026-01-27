@@ -7,16 +7,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Zap, LogOut, User, Crown, Bookmark } from "lucide-react";
+import { Zap, LogOut, User, Crown, Bookmark, Gift } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   onGetStarted?: () => void;
   onShowSavedIdeas?: () => void;
+  onShowReferrals?: () => void;
 }
 
-const Header = ({ onGetStarted, onShowSavedIdeas }: HeaderProps) => {
+const Header = ({ onGetStarted, onShowSavedIdeas, onShowReferrals }: HeaderProps) => {
   const { user, profile, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -93,6 +94,15 @@ const Header = ({ onGetStarted, onShowSavedIdeas }: HeaderProps) => {
                   <DropdownMenuItem onClick={onShowSavedIdeas} className="gap-2">
                     <Bookmark className="w-4 h-4" />
                     Saved Ideas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onShowReferrals} className="gap-2">
+                    <Gift className="w-4 h-4" />
+                    Referrals
+                    {(profile?.referral_count ?? 0) > 0 && (
+                      <span className="ml-auto text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        {profile?.referral_count}
+                      </span>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="gap-2">
                     <User className="w-4 h-4" />

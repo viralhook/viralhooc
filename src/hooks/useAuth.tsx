@@ -9,6 +9,9 @@ interface Profile {
   avatar_url: string | null;
   credits_remaining: number;
   is_premium: boolean;
+  referral_code: string | null;
+  referral_count: number;
+  referred_by: string | null;
 }
 
 interface AuthContextType {

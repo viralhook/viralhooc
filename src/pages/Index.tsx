@@ -12,6 +12,9 @@ import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import SavedIdeas from "@/components/SavedIdeas";
 import ProductTour from "@/components/ProductTour";
+import AIChatbot from "@/components/AIChatbot";
+import ContactSection from "@/components/ContactSection";
+import ReferralProgram from "@/components/ReferralProgram";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,23 +33,32 @@ const Index = () => {
   const [result, setResult] = useState<GeneratedResult | null>(null);
   const [lastFormData, setLastFormData] = useState<GeneratorData | null>(null);
   const [showSavedIdeas, setShowSavedIdeas] = useState(false);
+  const [showReferralProgram, setShowReferralProgram] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [pendingReferralCode, setPendingReferralCode] = useState<string | null>(null);
   const generatorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user, profile, refreshProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Check for subscription success/cancel in URL params
+  // Check for subscription success/cancel and referral code in URL params
   useEffect(() => {
     const subscription = searchParams.get("subscription");
+    const refCode = searchParams.get("ref");
+    
+    if (refCode) {
+      setPendingReferralCode(refCode);
+      // Store in localStorage for after signup
+      localStorage.setItem("viralhook-pending-referral", refCode);
+      setSearchParams({});
+    }
+    
     if (subscription === "success") {
       toast({
         title: "🎉 Welcome to Pro!",
         description: "Your subscription is active. Enjoy unlimited generations!",
       });
-      // Check subscription status to update profile
       checkSubscription();
-      // Clean URL
       setSearchParams({});
     } else if (subscription === "canceled") {
       toast({
@@ -56,6 +68,32 @@ const Index = () => {
       setSearchParams({});
     }
   }, [searchParams]);
+
+  // Apply pending referral after login
+  useEffect(() => {
+    const applyPendingReferral = async () => {
+      const storedCode = localStorage.getItem("viralhook-pending-referral");
+      if (user && storedCode && profile && !profile.referred_by) {
+        try {
+          const { data, error } = await supabase.functions.invoke("apply-referral", {
+            body: { referralCode: storedCode },
+          });
+          if (!error && data?.success) {
+            toast({
+              title: "🎉 Referral bonus applied!",
+              description: "You earned 2 bonus credits!",
+            });
+            await refreshProfile();
+          }
+        } catch (e) {
+          console.error("Failed to apply referral:", e);
+        } finally {
+          localStorage.removeItem("viralhook-pending-referral");
+        }
+      }
+    };
+    applyPendingReferral();
+  }, [user, profile]);
 
   // Check subscription status on load for logged-in users
   useEffect(() => {
@@ -176,7 +214,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header 
         onGetStarted={scrollToGenerator} 
-        onShowSavedIdeas={() => setShowSavedIdeas(true)} 
+        onShowSavedIdeas={() => setShowSavedIdeas(true)}
+        onShowReferrals={() => setShowReferralProgram(true)}
       />
       
       {!result ? (
@@ -203,10 +242,14 @@ const Index = () => {
         </>
       )}
       
+      <ContactSection />
       <Pricing />
       <FAQ />
       <CTA onGetStarted={scrollToGenerator} />
       <Footer />
+
+      {/* AI Chatbot */}
+      <AIChatbot />
 
       {/* Saved Ideas Dialog */}
       <Dialog open={showSavedIdeas} onOpenChange={setShowSavedIdeas}>
@@ -218,6 +261,19 @@ const Index = () => {
             </DialogDescription>
           </DialogHeader>
           <SavedIdeas />
+        </DialogContent>
+      </Dialog>
+
+      {/* Referral Program Dialog */}
+      <Dialog open={showReferralProgram} onOpenChange={setShowReferralProgram}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Referral Program</DialogTitle>
+            <DialogDescription>
+              Share with friends and earn free credits
+            </DialogDescription>
+          </DialogHeader>
+          <ReferralProgram onClose={() => setShowReferralProgram(false)} />
         </DialogContent>
       </Dialog>
 
