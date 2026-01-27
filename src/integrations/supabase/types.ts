@@ -22,6 +22,9 @@ export type Database = {
           display_name: string | null
           id: string
           is_premium: boolean
+          referral_code: string | null
+          referral_count: number
+          referred_by: string | null
           updated_at: string
           user_id: string
         }
@@ -32,6 +35,9 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_premium?: boolean
+          referral_code?: string | null
+          referral_count?: number
+          referred_by?: string | null
           updated_at?: string
           user_id: string
         }
@@ -42,6 +48,9 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_premium?: boolean
+          referral_code?: string | null
+          referral_count?: number
+          referred_by?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -94,7 +103,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
