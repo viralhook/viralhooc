@@ -14,17 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_feed: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          niche: string | null
+          platform: string | null
+          user_display_name: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          niche?: string | null
+          platform?: string | null
+          user_display_name: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          niche?: string | null
+          platform?: string | null
+          user_display_name?: string
+        }
+        Relationships: []
+      }
+      content_calendar: {
+        Row: {
+          created_at: string | null
+          id: string
+          idea_id: string | null
+          notes: string | null
+          platform: string
+          scheduled_date: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          idea_id?: string | null
+          notes?: string | null
+          platform: string
+          scheduled_date: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          idea_id?: string | null
+          notes?: string | null
+          platform?: string
+          scheduled_date?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "saved_ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_purchases: {
+        Row: {
+          amount_paid: number
+          created_at: string | null
+          credits: number
+          id: string
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string | null
+          credits: number
+          id?: string
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string | null
+          credits?: number
+          id?: string
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           credits_remaining: number
           display_name: string | null
+          email_notifications_credits: boolean | null
+          email_notifications_features: boolean | null
+          email_notifications_referrals: boolean | null
           id: string
           is_premium: boolean
+          lifetime_access: boolean | null
           referral_code: string | null
           referral_count: number
           referred_by: string | null
+          stripe_customer_id: string | null
+          total_ideas_generated: number | null
           updated_at: string
           user_id: string
         }
@@ -33,11 +140,17 @@ export type Database = {
           created_at?: string
           credits_remaining?: number
           display_name?: string | null
+          email_notifications_credits?: boolean | null
+          email_notifications_features?: boolean | null
+          email_notifications_referrals?: boolean | null
           id?: string
           is_premium?: boolean
+          lifetime_access?: boolean | null
           referral_code?: string | null
           referral_count?: number
           referred_by?: string | null
+          stripe_customer_id?: string | null
+          total_ideas_generated?: number | null
           updated_at?: string
           user_id: string
         }
@@ -46,11 +159,17 @@ export type Database = {
           created_at?: string
           credits_remaining?: number
           display_name?: string | null
+          email_notifications_credits?: boolean | null
+          email_notifications_features?: boolean | null
+          email_notifications_referrals?: boolean | null
           id?: string
           is_premium?: boolean
+          lifetime_access?: boolean | null
           referral_code?: string | null
           referral_count?: number
           referred_by?: string | null
+          stripe_customer_id?: string | null
+          total_ideas_generated?: number | null
           updated_at?: string
           user_id?: string
         }

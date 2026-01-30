@@ -15,6 +15,7 @@ import ProductTour from "@/components/ProductTour";
 import AIChatbot from "@/components/AIChatbot";
 import ContactSection from "@/components/ContactSection";
 import ReferralProgram from "@/components/ReferralProgram";
+import SocialProofPopup from "@/components/SocialProofPopup";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -250,6 +251,9 @@ const Index = () => {
 
       {/* AI Chatbot */}
       <AIChatbot />
+
+      {/* Social Proof Popup */}
+      <SocialProofPopup />
 
       {/* Saved Ideas Dialog */}
       <Dialog open={showSavedIdeas} onOpenChange={setShowSavedIdeas}>

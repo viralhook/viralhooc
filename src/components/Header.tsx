@@ -7,9 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Zap, LogOut, User, Crown, Bookmark, Gift } from "lucide-react";
+import { Zap, LogOut, User, Crown, Bookmark, Gift, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
   onGetStarted?: () => void;
@@ -63,7 +64,8 @@ const Header = ({ onGetStarted, onShowSavedIdeas, onShowReferrals }: HeaderProps
           </a>
         </nav>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           {isLoading ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -103,6 +105,10 @@ const Header = ({ onGetStarted, onShowSavedIdeas, onShowReferrals }: HeaderProps
                         {profile?.referral_count}
                       </span>
                     )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")} className="gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuItem className="gap-2">
                     <User className="w-4 h-4" />

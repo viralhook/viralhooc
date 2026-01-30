@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.apply-referral]
 verify_jwt = false
+
+[functions.purchase-credits]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
