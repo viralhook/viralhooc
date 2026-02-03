@@ -19,6 +19,7 @@ import SocialProofPopup from "@/components/SocialProofPopup";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useLowCreditsNotification } from "@/hooks/useLowCreditsNotification";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -41,6 +42,9 @@ const Index = () => {
   const { toast } = useToast();
   const { user, profile, refreshProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Check for low credits and send notification
+  useLowCreditsNotification();
 
   // Check for subscription success/cancel and referral code in URL params
   useEffect(() => {
