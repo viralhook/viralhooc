@@ -1,21 +1,15 @@
 project_id = "sqgsbekwvuccyompzhpv"
 
-[functions.create-checkout]
+[functions.create-paypal-checkout]
 verify_jwt = false
 
 [functions.check-subscription]
-verify_jwt = false
-
-[functions.customer-portal]
 verify_jwt = false
 
 [functions.ai-chat]
 verify_jwt = false
 
 [functions.apply-referral]
-verify_jwt = false
-
-[functions.purchase-credits]
 verify_jwt = false
 
 [functions.send-notification-email]

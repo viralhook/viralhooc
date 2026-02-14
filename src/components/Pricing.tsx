@@ -3,31 +3,38 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Zap, Crown, Loader2, Settings, Sparkles } from "lucide-react";
+import { Check, Zap, Crown, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { STRIPE_PRODUCTS } from "@/lib/stripe-products";
+import { PAYPAL_PRODUCTS } from "@/lib/paypal-products";
 
 const Pricing = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  const handleCheckout = async (priceId: string, productType: string) => {
+  const handleCheckout = async (productKey: string, productType: string) => {
     if (!user) {
       navigate("/auth");
       return;
     }
 
-    setIsLoading(priceId);
+    setIsLoading(productKey);
     try {
-      const { data, error } = await supabase.functions.invoke("purchase-credits", {
-        body: { priceId, productType },
-      });
-      
+      const product = PAYPAL_PRODUCTS[productKey as keyof typeof PAYPAL_PRODUCTS];
+      const body: Record<string, unknown> = {
+        productType,
+        price: product.price,
+        productName: product.name,
+      };
+      if ("plan_id" in product) {
+        body.planId = product.plan_id;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-paypal-checkout", { body });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (error: any) {
@@ -41,23 +48,10 @@ const Pricing = () => {
     }
   };
 
-  const handleManageSubscription = async () => {
-    setIsLoading("manage");
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (error: any) {
-      toast({ title: "Could not open portal", variant: "destructive" });
-    } finally {
-      setIsLoading(null);
-    }
-  };
-
   const creditPacks = [
-    { ...STRIPE_PRODUCTS.credits_10, label: "10 Credits", desc: "Best for trying out", popular: false },
-    { ...STRIPE_PRODUCTS.credits_50, label: "50 Credits", desc: "Most popular", popular: true },
-    { ...STRIPE_PRODUCTS.credits_100, label: "100 Credits", desc: "Best value", popular: false },
+    { key: "credits_10", label: "10 Credits", desc: "Best for trying out", popular: false, price: PAYPAL_PRODUCTS.credits_10.price },
+    { key: "credits_50", label: "50 Credits", desc: "Most popular", popular: true, price: PAYPAL_PRODUCTS.credits_50.price },
+    { key: "credits_100", label: "100 Credits", desc: "Best value", popular: false, price: PAYPAL_PRODUCTS.credits_100.price },
   ];
 
   return (
@@ -111,7 +105,7 @@ const Pricing = () => {
                   </div>
                   <CardTitle>Pro Monthly</CardTitle>
                   <CardDescription>Unlimited power</CardDescription>
-                  <div className="pt-4"><span className="text-4xl font-bold">$9.99</span><span className="text-muted-foreground">/mo</span></div>
+                  <div className="pt-4"><span className="text-4xl font-bold">${PAYPAL_PRODUCTS.pro_monthly.price}</span><span className="text-muted-foreground">/mo</span></div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -121,20 +115,15 @@ const Pricing = () => {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  {profile?.is_premium ? (
-                    <Button variant="outline" className="w-full" onClick={handleManageSubscription} disabled={isLoading === "manage"}>
-                      {isLoading === "manage" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}Manage
-                    </Button>
-                  ) : (
-                    <Button className="w-full" onClick={() => handleCheckout(STRIPE_PRODUCTS.pro_monthly.price_id, "subscription")} disabled={isLoading === STRIPE_PRODUCTS.pro_monthly.price_id}>
-                      {isLoading === STRIPE_PRODUCTS.pro_monthly.price_id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Upgrade
-                    </Button>
-                  )}
+                  <Button className="w-full" onClick={() => handleCheckout("pro_monthly", "subscription")} disabled={isLoading === "pro_monthly"}>
+                    {isLoading === "pro_monthly" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {profile?.is_premium ? "Current Plan" : "Upgrade"}
+                  </Button>
                 </CardFooter>
               </Card>
 
               {/* Pro Annual */}
-              <Card>
+              <Card className="relative">
                 <div className="absolute -top-3 right-4"><Badge variant="secondary">Save 20%</Badge></div>
                 <CardHeader className="text-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -142,7 +131,7 @@ const Pricing = () => {
                   </div>
                   <CardTitle>Pro Annual</CardTitle>
                   <CardDescription>Best value</CardDescription>
-                  <div className="pt-4"><span className="text-4xl font-bold">$95.90</span><span className="text-muted-foreground">/yr</span></div>
+                  <div className="pt-4"><span className="text-4xl font-bold">${PAYPAL_PRODUCTS.pro_annual.price}</span><span className="text-muted-foreground">/yr</span></div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -152,8 +141,8 @@ const Pricing = () => {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full" onClick={() => handleCheckout(STRIPE_PRODUCTS.pro_annual.price_id, "subscription")} disabled={isLoading === STRIPE_PRODUCTS.pro_annual.price_id}>
-                    {isLoading === STRIPE_PRODUCTS.pro_annual.price_id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Get Annual
+                  <Button variant="outline" className="w-full" onClick={() => handleCheckout("pro_annual", "subscription")} disabled={isLoading === "pro_annual"}>
+                    {isLoading === "pro_annual" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Get Annual
                   </Button>
                 </CardFooter>
               </Card>
@@ -163,7 +152,7 @@ const Pricing = () => {
           <TabsContent value="credits" className="mt-8">
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {creditPacks.map((pack) => (
-                <Card key={pack.price_id} className={pack.popular ? "border-primary shadow-lg" : ""}>
+                <Card key={pack.key} className={pack.popular ? "border-primary shadow-lg" : ""}>
                   {pack.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge>Best Value</Badge></div>}
                   <CardHeader className="text-center">
                     <CardTitle>{pack.label}</CardTitle>
@@ -171,8 +160,8 @@ const Pricing = () => {
                     <div className="pt-4"><span className="text-4xl font-bold">${pack.price}</span></div>
                   </CardHeader>
                   <CardFooter>
-                    <Button className="w-full" variant={pack.popular ? "default" : "outline"} onClick={() => handleCheckout(pack.price_id, "credits")} disabled={isLoading === pack.price_id}>
-                      {isLoading === pack.price_id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Buy Credits
+                    <Button className="w-full" variant={pack.popular ? "default" : "outline"} onClick={() => handleCheckout(pack.key, "credits")} disabled={isLoading === pack.key}>
+                      {isLoading === pack.key && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Buy Credits
                     </Button>
                   </CardFooter>
                 </Card>
@@ -188,7 +177,7 @@ const Pricing = () => {
                 </div>
                 <CardTitle className="text-2xl">Lifetime Access</CardTitle>
                 <CardDescription>One payment, unlimited forever</CardDescription>
-                <div className="pt-4"><span className="text-5xl font-bold">$199.99</span><span className="text-muted-foreground"> one-time</span></div>
+                <div className="pt-4"><span className="text-5xl font-bold">${PAYPAL_PRODUCTS.lifetime.price}</span><span className="text-muted-foreground"> one-time</span></div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
@@ -198,8 +187,8 @@ const Pricing = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button size="lg" className="w-full" onClick={() => handleCheckout(STRIPE_PRODUCTS.lifetime.price_id, "lifetime")} disabled={isLoading === STRIPE_PRODUCTS.lifetime.price_id}>
-                  {isLoading === STRIPE_PRODUCTS.lifetime.price_id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Get Lifetime Access
+                <Button size="lg" className="w-full" onClick={() => handleCheckout("lifetime", "lifetime")} disabled={isLoading === "lifetime"}>
+                  {isLoading === "lifetime" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Get Lifetime Access
                 </Button>
               </CardFooter>
             </Card>
