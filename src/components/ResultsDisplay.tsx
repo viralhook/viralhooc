@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, Bookmark, RefreshCw, Sparkles } from "lucide-react";
+import { Copy, Check, Bookmark, RefreshCw, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 export interface GeneratedResult {
@@ -13,14 +13,19 @@ export interface GeneratedResult {
 }
 
 interface ResultsDisplayProps {
-  result: GeneratedResult;
+  results: GeneratedResult[];
   onRegenerate: () => void;
-  onSave: () => void;
+  onSave: (index: number) => void;
   isLoading: boolean;
+  isAI?: boolean;
 }
 
-const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisplayProps) => {
+const ResultsDisplay = ({ results, onRegenerate, onSave, isLoading, isAI }: ResultsDisplayProps) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const result = results[currentIndex];
+  if (!result) return null;
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -29,17 +34,8 @@ const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisp
   };
 
   const CopyButton = ({ text, field }: { text: string; field: string }) => (
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={() => copyToClipboard(text, field)}
-      className="h-8 px-2"
-    >
-      {copiedField === field ? (
-        <Check className="w-4 h-4 text-primary" />
-      ) : (
-        <Copy className="w-4 h-4" />
-      )}
+    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(text, field)} className="h-8 px-2">
+      {copiedField === field ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
     </Button>
   );
 
@@ -50,18 +46,54 @@ const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisp
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-primary" />
             Your Viral Blueprint
+            {isAI && <Badge className="text-xs">AI-Powered</Badge>}
           </h2>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onSave}>
-              <Bookmark className="w-4 h-4 mr-2" />
-              Save
+            <Button variant="outline" size="sm" onClick={() => onSave(currentIndex)}>
+              <Bookmark className="w-4 h-4 mr-2" />Save
             </Button>
             <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Regenerate
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Regenerate
             </Button>
           </div>
         </div>
+
+        {/* Batch navigation */}
+        {results.length > 1 && (
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex gap-2">
+              {results.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentIndex(i)}
+                  className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+                    i === currentIndex
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentIndex((prev) => Math.min(results.length - 1, prev + 1))}
+              disabled={currentIndex === results.length - 1}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-4">
           {/* Hook */}
@@ -76,9 +108,7 @@ const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisp
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-semibold text-foreground leading-relaxed">
-                "{result.hook}"
-              </p>
+              <p className="text-xl font-semibold text-foreground leading-relaxed">"{result.hook}"</p>
             </CardContent>
           </Card>
 
@@ -120,9 +150,7 @@ const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisp
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm">
-                {result.aiPrompt}
-              </div>
+              <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm">{result.aiPrompt}</div>
             </CardContent>
           </Card>
 
@@ -137,9 +165,7 @@ const ResultsDisplay = ({ result, onRegenerate, onSave, isLoading }: ResultsDisp
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {result.hashtags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
-                    {tag}
-                  </Badge>
+                  <Badge key={index} variant="secondary" className="text-sm py-1 px-3">{tag}</Badge>
                 ))}
               </div>
             </CardContent>
