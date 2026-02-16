@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Sparkles, Loader2, Zap, Crown, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface GeneratorFormProps {
-  onGenerate: (data: GeneratorData) => void;
+  onGenerate: (data: GeneratorData, useAI: boolean, batchCount: number) => void;
   isLoading: boolean;
 }
 
@@ -17,18 +20,9 @@ export interface GeneratorData {
 }
 
 const niches = [
-  "Animals & Pets",
-  "Motivation",
-  "Gaming",
-  "AI Stories",
-  "Rescue Videos",
-  "Cooking",
-  "Fitness",
-  "Travel",
-  "Comedy",
-  "Tech",
-  "Fashion",
-  "Finance",
+  "Animals & Pets", "Motivation", "Gaming", "AI Stories",
+  "Rescue Videos", "Cooking", "Fitness", "Travel",
+  "Comedy", "Tech", "Fashion", "Finance",
 ];
 
 const platforms = [
@@ -48,11 +42,20 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
   const [customNiche, setCustomNiche] = useState("");
   const [platform, setPlatform] = useState("");
   const [goal, setGoal] = useState("");
+  const [useAI, setUseAI] = useState(true);
+  const [batchMode, setBatchMode] = useState(false);
+  const { profile } = useAuth();
+
+  const isPro = profile?.is_premium;
 
   const handleSubmit = () => {
     const selectedNiche = niche === "custom" ? customNiche : niche;
     if (selectedNiche && platform && goal) {
-      onGenerate({ niche: selectedNiche, platform, goal });
+      onGenerate(
+        { niche: selectedNiche, platform, goal },
+        isPro ? useAI : false,
+        isPro && batchMode ? 5 : 1
+      );
     }
   };
 
@@ -75,9 +78,7 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
             {/* Step 1: Niche */}
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                  1
-                </span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">1</span>
                 What's your niche?
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -118,9 +119,7 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
             {/* Step 2: Platform */}
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                  2
-                </span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">2</span>
                 Choose your platform
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -144,9 +143,7 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
             {/* Step 3: Goal */}
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                  3
-                </span>
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">3</span>
                 What's your goal?
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -167,6 +164,45 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
               </div>
             </div>
 
+            {/* Pro Options */}
+            <div className="border border-border rounded-xl p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">Pro Features</span>
+                {!isPro && <Badge variant="secondary" className="text-xs"><Lock className="w-3 h-3 mr-1" />Upgrade</Badge>}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    AI-Powered Generation
+                  </p>
+                  <p className="text-xs text-muted-foreground">Real AI creates unique, high-quality ideas</p>
+                </div>
+                <Switch
+                  checked={isPro ? useAI : false}
+                  onCheckedChange={setUseAI}
+                  disabled={!isPro}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    Batch Generation (5 ideas)
+                  </p>
+                  <p className="text-xs text-muted-foreground">Generate 5 unique ideas at once</p>
+                </div>
+                <Switch
+                  checked={isPro ? batchMode : false}
+                  onCheckedChange={setBatchMode}
+                  disabled={!isPro}
+                />
+              </div>
+            </div>
+
             {/* Generate Button */}
             <Button
               size="lg"
@@ -177,18 +213,18 @@ const GeneratorForm = ({ onGenerate, isLoading }: GeneratorFormProps) => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                  Generating Magic...
+                  {isPro && useAI ? "AI is generating..." : "Generating Magic..."}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 w-5 h-5" />
-                  Generate Viral Idea
+                  Generate {isPro && batchMode ? "5 " : ""}Viral Idea{isPro && batchMode ? "s" : ""}
                 </>
               )}
             </Button>
             
             <p className="text-center text-sm text-muted-foreground">
-              ✨ Free tier: 3 generations per day
+              {isPro ? "✨ Unlimited AI-powered generations" : "✨ Free tier: 3 generations per day"}
             </p>
           </CardContent>
         </Card>

@@ -16,24 +16,24 @@ import AIChatbot from "@/components/AIChatbot";
 import ContactSection from "@/components/ContactSection";
 import ReferralProgram from "@/components/ReferralProgram";
 import SocialProofPopup from "@/components/SocialProofPopup";
+import TemplateLibrary from "@/components/TemplateLibrary";
 import { generateViralIdea } from "@/lib/mockGenerator";
+import { generateWithAI } from "@/lib/aiGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLowCreditsNotification } from "@/hooks/useLowCreditsNotification";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<GeneratedResult | null>(null);
+  const [results, setResults] = useState<GeneratedResult[]>([]);
   const [lastFormData, setLastFormData] = useState<GeneratorData | null>(null);
+  const [lastUseAI, setLastUseAI] = useState(false);
+  const [lastBatchCount, setLastBatchCount] = useState(1);
   const [showSavedIdeas, setShowSavedIdeas] = useState(false);
   const [showReferralProgram, setShowReferralProgram] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -43,7 +43,6 @@ const Index = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Check for low credits and send notification
   useLowCreditsNotification();
 
   // Check for subscription success/cancel and referral code in URL params
@@ -53,23 +52,16 @@ const Index = () => {
     
     if (refCode) {
       setPendingReferralCode(refCode);
-      // Store in localStorage for after signup
       localStorage.setItem("viralhook-pending-referral", refCode);
       setSearchParams({});
     }
     
     if (subscription === "success") {
-      toast({
-        title: "🎉 Welcome to Pro!",
-        description: "Your subscription is active. Enjoy unlimited generations!",
-      });
+      toast({ title: "🎉 Welcome to Pro!", description: "Your subscription is active. Enjoy unlimited generations!" });
       checkSubscription();
       setSearchParams({});
     } else if (subscription === "canceled") {
-      toast({
-        title: "Checkout canceled",
-        description: "No worries! You can upgrade anytime.",
-      });
+      toast({ title: "Checkout canceled", description: "No worries! You can upgrade anytime." });
       setSearchParams({});
     }
   }, [searchParams]);
@@ -84,10 +76,7 @@ const Index = () => {
             body: { referralCode: storedCode },
           });
           if (!error && data?.success) {
-            toast({
-              title: "🎉 Referral bonus applied!",
-              description: "You earned 2 bonus credits!",
-            });
+            toast({ title: "🎉 Referral bonus applied!", description: "You earned 2 bonus credits!" });
             await refreshProfile();
           }
         } catch (e) {
@@ -100,18 +89,13 @@ const Index = () => {
     applyPendingReferral();
   }, [user, profile]);
 
-  // Check subscription status on load for logged-in users
   useEffect(() => {
-    if (user) {
-      checkSubscription();
-    }
+    if (user) checkSubscription();
   }, [user]);
 
-  // Show tour for new users
   useEffect(() => {
     const tourCompleted = localStorage.getItem("viralhook-tour-completed");
     if (!tourCompleted) {
-      // Delay tour to let page load
       const timer = setTimeout(() => setShowTour(true), 1000);
       return () => clearTimeout(timer);
     }
@@ -130,25 +114,29 @@ const Index = () => {
     generatorRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleGenerate = async (data: GeneratorData) => {
-    // Check credits for logged-in users
+  const handleGenerate = async (data: GeneratorData, useAI: boolean, batchCount: number) => {
     if (user && profile && profile.credits_remaining <= 0 && !profile.is_premium) {
-      toast({
-        title: "No credits remaining",
-        description: "Upgrade to Pro for unlimited generations!",
-        variant: "destructive",
-      });
+      toast({ title: "No credits remaining", description: "Upgrade to Pro for unlimited generations!", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
     setLastFormData(data);
+    setLastUseAI(useAI);
+    setLastBatchCount(batchCount);
     
     try {
-      const generatedResult = await generateViralIdea(data);
-      setResult(generatedResult);
+      let generatedResults: GeneratedResult[];
+
+      if (useAI) {
+        generatedResults = await generateWithAI(data, batchCount);
+      } else {
+        const single = await generateViralIdea(data);
+        generatedResults = [single];
+      }
+
+      setResults(generatedResults);
       
-      // Deduct credit for logged-in users
       if (user && profile && !profile.is_premium) {
         await supabase
           .from("profiles")
@@ -158,15 +146,13 @@ const Index = () => {
       }
       
       toast({
-        title: "✨ Viral idea generated!",
-        description: "Your video blueprint is ready. Start creating!",
+        title: useAI ? "🤖 AI-powered ideas generated!" : "✨ Viral idea generated!",
+        description: generatedResults.length > 1
+          ? `${generatedResults.length} unique blueprints are ready!`
+          : "Your video blueprint is ready. Start creating!",
       });
     } catch (error) {
-      toast({
-        title: "Generation failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Generation failed", description: "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -174,19 +160,17 @@ const Index = () => {
 
   const handleRegenerate = () => {
     if (lastFormData) {
-      handleGenerate(lastFormData);
+      handleGenerate(lastFormData, lastUseAI, lastBatchCount);
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (index: number) => {
     if (!user) {
-      toast({
-        title: "Sign up to save ideas",
-        description: "Create a free account to save and organize your viral ideas.",
-      });
+      toast({ title: "Sign up to save ideas", description: "Create a free account to save and organize your viral ideas." });
       return;
     }
 
+    const result = results[index];
     if (!result || !lastFormData) return;
 
     const { error } = await supabase.from("saved_ideas").insert({
@@ -202,16 +186,9 @@ const Index = () => {
     });
 
     if (error) {
-      toast({
-        title: "Failed to save",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to save", description: "Something went wrong. Please try again.", variant: "destructive" });
     } else {
-      toast({
-        title: "Idea saved! 🎉",
-        description: "Find it in your saved ideas anytime.",
-      });
+      toast({ title: "Idea saved! 🎉", description: "Find it in your saved ideas anytime." });
     }
   };
 
@@ -223,7 +200,7 @@ const Index = () => {
         onShowReferrals={() => setShowReferralProgram(true)}
       />
       
-      {!result ? (
+      {results.length === 0 ? (
         <>
           <Hero onGetStarted={scrollToGenerator} />
           <Stats />
@@ -231,6 +208,7 @@ const Index = () => {
             <GeneratorForm onGenerate={handleGenerate} isLoading={isLoading} />
           </div>
           <Features />
+          <TemplateLibrary />
           <Testimonials />
         </>
       ) : (
@@ -239,10 +217,11 @@ const Index = () => {
             <GeneratorForm onGenerate={handleGenerate} isLoading={isLoading} />
           </div>
           <ResultsDisplay
-            result={result}
+            results={results}
             onRegenerate={handleRegenerate}
             onSave={handleSave}
             isLoading={isLoading}
+            isAI={lastUseAI}
           />
         </>
       )}
@@ -253,43 +232,30 @@ const Index = () => {
       <CTA onGetStarted={scrollToGenerator} />
       <Footer />
 
-      {/* AI Chatbot */}
       <AIChatbot />
-
-      {/* Social Proof Popup */}
       <SocialProofPopup />
 
-      {/* Saved Ideas Dialog */}
       <Dialog open={showSavedIdeas} onOpenChange={setShowSavedIdeas}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Saved Ideas</DialogTitle>
-            <DialogDescription>
-              Your collection of viral video ideas
-            </DialogDescription>
+            <DialogDescription>Your collection of viral video ideas</DialogDescription>
           </DialogHeader>
           <SavedIdeas />
         </DialogContent>
       </Dialog>
 
-      {/* Referral Program Dialog */}
       <Dialog open={showReferralProgram} onOpenChange={setShowReferralProgram}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Referral Program</DialogTitle>
-            <DialogDescription>
-              Share with friends and earn free credits
-            </DialogDescription>
+            <DialogDescription>Share with friends and earn free credits</DialogDescription>
           </DialogHeader>
           <ReferralProgram onClose={() => setShowReferralProgram(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* Product Tour */}
-      <ProductTour 
-        isOpen={showTour} 
-        onComplete={() => setShowTour(false)} 
-      />
+      <ProductTour isOpen={showTour} onComplete={() => setShowTour(false)} />
     </div>
   );
 };

@@ -1,35 +1,42 @@
-import { Sparkles, Clock, Target, Lightbulb, Copy, Hash } from "lucide-react";
+import { Sparkles, Clock, Target, Lightbulb, Copy, Hash, Zap, Crown, LayoutTemplate } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const features = [
   {
     icon: Sparkles,
-    title: "Scroll-Stopping Hooks",
-    description: "AI-generated hooks designed to capture attention in the first 2 seconds.",
+    title: "AI-Powered Ideas",
+    description: "Real AI creates unique, high-quality hooks, storylines, and prompts tailored to your niche.",
+    pro: true,
   },
   {
-    icon: Clock,
-    title: "30-Second Generation",
-    description: "Get complete video blueprints in under 30 seconds. No waiting around.",
+    icon: Zap,
+    title: "Batch Generation",
+    description: "Generate 5 unique viral ideas at once. Compare and pick the best one.",
+    pro: true,
+  },
+  {
+    icon: LayoutTemplate,
+    title: "Template Library",
+    description: "Proven viral blueprints for every niche. New templates added weekly.",
+    pro: true,
   },
   {
     icon: Target,
     title: "Goal-Optimized",
     description: "Tell us your goal - views, followers, or sales - and get tailored content.",
-  },
-  {
-    icon: Lightbulb,
-    title: "Never Run Out of Ideas",
-    description: "Unlimited creative inspiration across any niche or platform.",
+    pro: false,
   },
   {
     icon: Copy,
     title: "Ready-to-Use Prompts",
     description: "Copy-paste AI prompts for tools like Runway, Pika, and more.",
+    pro: false,
   },
   {
     icon: Hash,
     title: "SEO Hashtags",
     description: "Optimized hashtags to boost discoverability and reach.",
+    pro: false,
   },
 ];
 
@@ -60,7 +67,10 @@ const Features = () => {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <feature.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">{feature.title}</h3>
+              <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors flex items-center gap-2">
+                {feature.title}
+                {feature.pro && <Badge variant="secondary" className="text-xs"><Crown className="w-3 h-3 mr-1" />Pro</Badge>}
+              </h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
             </div>
           ))}

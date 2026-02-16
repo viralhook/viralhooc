@@ -84,7 +84,7 @@ const Pricing = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
-                    {["3 credits", "All platforms", "Basic hooks"].map((f) => (
+                    {["3 credits", "All platforms", "Basic hooks", "Limited templates"].map((f) => (
                       <li key={f} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" />{f}</li>
                     ))}
                   </ul>
@@ -109,7 +109,7 @@ const Pricing = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
-                    {["Unlimited generations", "Priority AI", "Save ideas", "Export CSV"].map((f) => (
+                    {["Unlimited generations", "AI-powered ideas", "Batch generation (5x)", "Template library", "Save ideas & export CSV", "Priority support"].map((f) => (
                       <li key={f} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" />{f}</li>
                     ))}
                   </ul>
@@ -135,7 +135,7 @@ const Pricing = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
-                    {["Everything in Pro", "2 months free", "Priority support"].map((f) => (
+                    {["Everything in Pro", "AI + batch generation", "2 months free", "Template library", "Priority support"].map((f) => (
                       <li key={f} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" />{f}</li>
                     ))}
                   </ul>
@@ -181,7 +181,7 @@ const Pricing = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  {["Unlimited generations forever", "All future features", "Priority support", "No recurring fees"].map((f) => (
+                  {["Unlimited AI-powered generations", "Batch generation (5x)", "Full template library", "All future features", "Priority support", "No recurring fees"].map((f) => (
                     <li key={f} className="flex items-center gap-3"><Check className="w-5 h-5 text-primary" />{f}</li>
                   ))}
                 </ul>
