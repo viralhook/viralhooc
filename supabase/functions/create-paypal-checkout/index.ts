@@ -17,7 +17,9 @@ async function getPayPalAccessToken(): Promise<string> {
   const secretKey = Deno.env.get("PAYPAL_SECRET_KEY");
   if (!clientId || !secretKey) throw new Error("PayPal credentials not configured");
 
-  const baseUrl = "https://api-m.paypal.com";
+  console.log("PayPal creds check:", { clientIdLen: clientId.length, clientIdPrefix: clientId.substring(0, 6), secretLen: secretKey.length });
+
+  const baseUrl = "https://api-m.sandbox.paypal.com";
   const res = await fetch(`${baseUrl}/v1/oauth2/token`, {
     method: "POST",
     headers: {
@@ -63,7 +65,7 @@ serve(async (req) => {
     logStep("Request data", { planId, productType, price, productName });
 
     const accessToken = await getPayPalAccessToken();
-    const baseUrl = "https://api-m.paypal.com";
+    const baseUrl = "https://api-m.sandbox.paypal.com";
     const origin = req.headers.get("origin") || "https://viralhooc.lovable.app";
 
     let approvalUrl: string;
