@@ -99,6 +99,7 @@ serve(async (req) => {
           paypal: {
             experience_context: {
               brand_name: "ViralHook",
+              shipping_preference: "NO_SHIPPING",
               return_url: `${origin}/?purchase=success&type=${productType}`,
               cancel_url: `${origin}/?purchase=canceled`,
               user_action: "PAY_NOW",
