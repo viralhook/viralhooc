@@ -76,85 +76,48 @@ serve(async (req) => {
     const baseUrl = "https://api-m.sandbox.paypal.com";
     const origin = req.headers.get("origin") || "https://viralhooc.lovable.app";
 
-    let approvalUrl: string;
-
-    if (productType === "subscription" && planId) {
-      // Create a PayPal subscription
-      const subRes = await fetch(`${baseUrl}/v1/billing/subscriptions`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          plan_id: planId,
-          subscriber: {
-            email_address: user.email,
-          },
-          application_context: {
-            brand_name: "ViralHook",
-            return_url: `${origin}/?purchase=success&type=subscription`,
-            cancel_url: `${origin}/?purchase=canceled`,
-            user_action: "SUBSCRIBE_NOW",
-          },
-          custom_id: user.id,
-        }),
-      });
-
-      if (!subRes.ok) {
-        const err = await subRes.text();
-        throw new Error(`PayPal subscription creation failed [${subRes.status}]: ${err}`);
-      }
-
-      const subData = await subRes.json();
-      const approveLink = subData.links?.find((l: any) => l.rel === "approve");
-      if (!approveLink) throw new Error("No approval URL returned from PayPal");
-      approvalUrl = approveLink.href;
-      logStep("Subscription created", { subscriptionId: subData.id });
-    } else {
-      // Create a one-time PayPal order
-      const orderRes = await fetch(`${baseUrl}/v2/checkout/orders`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          intent: "CAPTURE",
-          purchase_units: [
-            {
-              amount: {
-                currency_code: "USD",
-                value: String(price),
-              },
-              description: productName || "ViralHook Purchase",
-              custom_id: user.id,
+    // Always create a one-time PayPal order (no plan IDs needed)
+    const orderRes = await fetch(`${baseUrl}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            amount: {
+              currency_code: "USD",
+              value: String(price),
             },
-          ],
-          payment_source: {
-            paypal: {
-              experience_context: {
-                brand_name: "ViralHook",
-                return_url: `${origin}/?purchase=success&type=${productType}`,
-                cancel_url: `${origin}/?purchase=canceled`,
-                user_action: "PAY_NOW",
-              },
+            description: productName || "ViralHook Purchase",
+            custom_id: `${user.id}|${productType}`,
+          },
+        ],
+        payment_source: {
+          paypal: {
+            experience_context: {
+              brand_name: "ViralHook",
+              return_url: `${origin}/?purchase=success&type=${productType}`,
+              cancel_url: `${origin}/?purchase=canceled`,
+              user_action: "PAY_NOW",
             },
           },
-        }),
-      });
+        },
+      }),
+    });
 
-      if (!orderRes.ok) {
-        const err = await orderRes.text();
-        throw new Error(`PayPal order creation failed [${orderRes.status}]: ${err}`);
-      }
-
-      const orderData = await orderRes.json();
-      const approveLink = orderData.links?.find((l: any) => l.rel === "payer-action");
-      if (!approveLink) throw new Error("No approval URL returned from PayPal");
-      approvalUrl = approveLink.href;
-      logStep("Order created", { orderId: orderData.id });
+    if (!orderRes.ok) {
+      const err = await orderRes.text();
+      throw new Error(`PayPal order creation failed [${orderRes.status}]: ${err}`);
     }
+
+    const orderData = await orderRes.json();
+    const approveLink = orderData.links?.find((l: any) => l.rel === "payer-action");
+    if (!approveLink) throw new Error("No approval URL returned from PayPal");
+    const approvalUrl = approveLink.href;
+    logStep("Order created", { orderId: orderData.id, productType });
 
     return new Response(JSON.stringify({ url: approvalUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
