@@ -1,24 +1,13 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles, Play, TrendingUp, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import demoVideo from "@/assets/demo-video.mp4";
+import { ArrowRight, Sparkles, Play, TrendingUp } from "lucide-react";
 
 interface HeroProps {
   onGetStarted: () => void;
 }
 
 const Hero = ({ onGetStarted }: HeroProps) => {
-  const [showDemo, setShowDemo] = useState(false);
-
   return (
-    <>
     <section className="pt-24 pb-16 px-4 min-h-[90vh] flex items-center relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
@@ -47,10 +36,6 @@ const Hero = ({ onGetStarted }: HeroProps) => {
           <Button size="lg" onClick={onGetStarted} className="text-lg px-8 py-6 hover-scale shadow-lg shadow-primary/20">
             Start Creating Free
             <ArrowRight className="ml-2 w-5 h-5" />
-          </Button>
-          <Button size="lg" variant="outline" className="text-lg px-8 py-6 hover-scale" onClick={() => setShowDemo(true)}>
-            <Play className="mr-2 w-5 h-5" />
-            Watch Demo
           </Button>
         </div>
         
@@ -82,28 +67,7 @@ const Hero = ({ onGetStarted }: HeroProps) => {
           ))}
         </div>
       </div>
-
-      {/* Demo Video Dialog */}
-      <Dialog open={showDemo} onOpenChange={setShowDemo}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle>See ViralHook in Action</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">
-            <video
-              src={demoVideo}
-              controls
-              autoPlay
-              className="w-full rounded-lg"
-              poster="/placeholder.svg"
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        </DialogContent>
-      </Dialog>
     </section>
-    </>
   );
 };
 
