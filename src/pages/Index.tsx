@@ -16,6 +16,7 @@ import AIChatbot from "@/components/AIChatbot";
 import ContactSection from "@/components/ContactSection";
 import ReferralProgram from "@/components/ReferralProgram";
 import SocialProofPopup from "@/components/SocialProofPopup";
+import VideoAnalyzer from "@/components/VideoAnalyzer";
 import TemplateLibrary from "@/components/TemplateLibrary";
 import { generateViralIdea } from "@/lib/mockGenerator";
 import { generateWithAI } from "@/lib/aiGenerator";
@@ -207,6 +208,7 @@ const Index = () => {
           <div ref={generatorRef}>
             <GeneratorForm onGenerate={handleGenerate} isLoading={isLoading} />
           </div>
+          <VideoAnalyzer />
           <Features />
           <TemplateLibrary />
           <Testimonials />
