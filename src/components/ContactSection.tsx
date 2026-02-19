@@ -33,7 +33,7 @@ const ContactSection = () => {
     );
     
     // Open email client
-    window.location.href = `mailto:alfambugua@gmail.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:viralhoock@gmail.com?subject=${subject}&body=${body}`;
 
     setTimeout(() => {
       setIsSending(false);
@@ -131,10 +131,10 @@ const ContactSection = () => {
                       For support, feedback, or partnerships
                     </p>
                     <a
-                      href="mailto:alfambugua@gmail.com"
+                      href="mailto:viralhoock@gmail.com"
                       className="text-primary font-medium hover:underline"
                     >
-                      alfambugua@gmail.com
+                      viralhoock@gmail.com
                     </a>
                   </div>
                 </div>
