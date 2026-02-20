@@ -41,7 +41,7 @@ const Footer = () => {
                 viralhoock@gmail.com
               </a>
               <a 
-                href="https://twitter.com" 
+                href="https://x.com/hookviral" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
