@@ -20,9 +20,23 @@ const VideoAnalyzer = () => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const { toast } = useToast();
 
+  const isValidVideoUrl = (url: string) => {
+    const patterns = [
+      /^https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com)\//i,
+      /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i,
+      /^https?:\/\/(www\.)?(instagram\.com)\//i,
+    ];
+    return patterns.some((p) => p.test(url.trim()));
+  };
+
   const handleAnalyze = async () => {
     if (!videoUrl.trim()) {
       toast({ title: "Enter a video link", description: "Paste your TikTok, YouTube, or Instagram video URL.", variant: "destructive" });
+      return;
+    }
+
+    if (!isValidVideoUrl(videoUrl)) {
+      toast({ title: "Invalid video link", description: "Only TikTok, YouTube, and Instagram links are supported.", variant: "destructive" });
       return;
     }
 
