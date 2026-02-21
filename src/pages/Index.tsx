@@ -48,8 +48,11 @@ const Index = () => {
 
   // Check for subscription success/cancel and referral code in URL params
   useEffect(() => {
+    const purchase = searchParams.get("purchase");
+    const purchaseType = searchParams.get("type");
     const subscription = searchParams.get("subscription");
     const refCode = searchParams.get("ref");
+    const token = searchParams.get("token"); // PayPal order ID
     
     if (refCode) {
       setPendingReferralCode(refCode);
@@ -57,7 +60,30 @@ const Index = () => {
       setSearchParams({});
     }
     
-    if (subscription === "success") {
+    if (purchase === "success" && token) {
+      // Capture the PayPal order
+      const captureOrder = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("capture-paypal-order", {
+            body: { orderId: token },
+          });
+          if (error) throw error;
+          if (data?.success) {
+            const typeLabel = purchaseType === "lifetime" ? "Lifetime Access" : purchaseType === "credits" ? "Credits" : "Pro";
+            toast({ title: `🎉 ${typeLabel} activated!`, description: "Your purchase was successful. Enjoy!" });
+            await refreshProfile();
+          }
+        } catch (e: any) {
+          console.error("Capture error:", e);
+          toast({ title: "Payment verification issue", description: "Please contact support if your purchase isn't reflected.", variant: "destructive" });
+        }
+        setSearchParams({});
+      };
+      captureOrder();
+    } else if (purchase === "canceled") {
+      toast({ title: "Checkout canceled", description: "No worries! You can upgrade anytime." });
+      setSearchParams({});
+    } else if (subscription === "success") {
       toast({ title: "🎉 Welcome to Pro!", description: "Your subscription is active. Enjoy unlimited generations!" });
       checkSubscription();
       setSearchParams({});
