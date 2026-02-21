@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.analyze-video]
 verify_jwt = false
+
+[functions.capture-paypal-order]
+verify_jwt = false
